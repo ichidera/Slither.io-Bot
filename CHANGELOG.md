@@ -10,6 +10,7 @@ Results are per-run displayed scores, not cumulative across restarts. See [docs/
 
 ### Added
 
+- **Browser trainer panel (`panel/trainer/`):** inject a control panel into an existing slither.io tab and take over the snake that is already on screen. It never launches a browser, navigates, clicks Play, reconnects, or creates a new run. Includes a Tampermonkey loader, a bookmarklet, hotkeys, a local radar, and a self-contained live-state planner.
 - **Self-body collision modeling:** above `SELF_COLLISION_MIN_LEN = 140`, the visible own-body trail is inserted into the planner grid with neck skipping, cumulative trail arc, tail-death expiry and a 120-segment cap.
 - **Future-path self check:** candidates whose own rollout loops back within two body radii of an older self point are rejected. Active at length 140+.
 - **Per-target reaction lag:** predicted enemy headings are held for roughly 0.05 s for fast tiny boosters and 0.09 to 0.11 s for ordinary and long snakes.

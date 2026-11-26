@@ -69,6 +69,7 @@ If Chromium is already installed, pass `--browser /path/to/chrome` or set `PLAYW
 | `probe_tops.py` | Samples servers and reports nearby-snake density. |
 | `tools/sync_embedded.py` | Syncs (or checks) `bot_v2.js` to the embedded `BOT_JS`. |
 | `recon/` | Standalone read-only probes. Do not write game state from them. |
+| `panel/trainer/` | Browser-injectable panel that takes over a live slither.io tab. It never starts a run. |
 | `docs/` | Architecture, measured results and open problems. |
 | `.github/` | Issue and PR templates and the syntax/sync CI workflow. |
 

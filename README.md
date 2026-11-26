@@ -86,6 +86,13 @@ python tools/sync_embedded.py
 python tools/sync_embedded.py --check
 ```
 
+### Browser trainer panel (live session)
+
+`panel/trainer/` injects a control panel into a slither.io tab you already have
+open. It takes over the snake in that live session instead of launching a new
+browser or creating a new run. Start the run yourself, inject the panel, then
+click **Take over**. See [panel/trainer/README.md](panel/trainer/README.md).
+
 ### Server probing
 
 The client's quiet-server pick uses `ac` (active connections), which can be high even when the actual arena is sparse. `probe_tops.py` samples candidate servers and reports how many snakes are within 1k / 2k / 4k units.
@@ -153,6 +160,7 @@ run_v2.py               Dev runner: loads bot_v2.js from disk
 probe_tops.py           Server sampler (nearby-snake density)
 tools/sync_embedded.py  Syncs bot_v2.js into the embedded BOT_JS
 recon/                  Read-only live-state, food and physics probes
+panel/trainer/          Browser-injectable panel for taking over a live tab
 docs/
   ARCHITECTURE.md       Planner internals and game-state surface
   PERFORMANCE.md        Measured runs, death profile, open problems

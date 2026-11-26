@@ -1,0 +1,1 @@
+javascript:(()=>{if(window.__slitherTrainer){window.__slitherTrainer.show();return}const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/ichidera/Slither.io-Bot@main/panel/trainer/trainer.js?cb='+Date.now();s.onerror=()=>alert('Slither Trainer failed to load. Use the DevTools console method instead.');document.documentElement.appendChild(s)})()
