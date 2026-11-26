@@ -6,11 +6,67 @@ Results are per-run displayed scores, not cumulative across restarts. See [docs/
 
 ---
 
+## [v0.2.1] - 2026-11-26
+
+### Fixed
+
+- **Trainer body ramming:** enemy bodies are collected independently of head
+  distance, so a long snake whose head is outside the 2,400-unit threat range
+  can no longer hide a body crossing directly in front of the player.
+- **Body-point budget:** each snake keeps a bounded heap of its nearest body
+  points, and the locked hunt target's body is prioritized before other bodies.
+  This prevents a crowded scene or a long tail from dropping the body the
+  planner is about to cross.
+- **Planner/snapshot/radar consistency:** static head points and prioritized
+  body points are separate lists; the planner, snapshots and radar all use the
+  same body obstacle set.
+
+### Added
+
+- **Playwright regression suite (`panel/trainer/tests/`):** installed default
+  Chrome/Edge detection, 18 closed-loop scenarios, 29 takeover/input-shield
+  checks, 37 hunt/radar/UI checks, and a 5/24-snake FPS benchmark.
+- **Body regressions:** `body_far_head`, `body_far_moving`,
+  `body_target_last` and `body_many` cover static and moving head-far
+  crossings, target-body priority under budget pressure, and multiple long
+  bodies.
+- **[docs/TRAINER_TESTING.md](docs/TRAINER_TESTING.md):** root cause, fix,
+  test setup, validation results, live checklist and limitations.
+
+### Validated
+
+- Trainer v0.2.1 closed-loop suite: 18/18 modes passed with zero simulated
+  collisions. `body_far_head` measured about 200 units minimum enemy clearance;
+  `body_far_moving` about 221; `body_target_last` about 114; `body_many` about
+  401.
+- Trainer takeover suite: 29/29 checks passed.
+- Trainer hunt/radar/UI suite: 37/37 checks passed.
+- Trainer benchmark: 60 fps with five enemies x 120 points, and 60 fps with
+  24 enemies x 140 points, using Playwright 1.59.0 and installed Chrome 155.
+- Short live probe: a one-off Playwright probe started a run, injected the
+  v0.2.1 trainer and took over for about 21 seconds. No death; stayed clear of
+  nearby bodies; no trainer page errors. The game logged IPv6
+  WebSocket fallback errors during server selection. Release returned to idle
+  with zero play clicks. The production trainer did not start the run. This was
+  not a substitute for a full live run.
+
+### Known limitations
+
+- The offline mock does not reproduce live server collision resolution or
+  latency. A short live test is still required before publishing.
+- A body with more than 64 sampled points inside the 2,520-unit body range
+  keeps only its 64 closest points. Points farther along the same body can be
+  omitted; the target body is prioritized and the closest crossing is retained.
+
+---
+
 ## [Unreleased]
 
 ### Added
 
 - **Browser trainer panel (`panel/trainer/`):** inject a control panel into an existing slither.io tab and take over the snake that is already on screen. It never launches a browser, navigates, clicks Play, reconnects, or creates a new run. Includes a Tampermonkey loader, a bookmarklet, hotkeys, a local radar, and a self-contained live-state planner.
+- **Trainer v0.2.0 hunting and radar:** threat range expanded to 2,400 units with time-to-collision, closest-approach, crowd, wall and persistent faster-chaser detection; lead-intercept hunting with chase, coil, cut-across and body-trap maneuvers for smaller isolated snakes; corpse/feast detection from kills or dense big-pellet clusters; target locking, hunt-aware food weighting, and gated cut-off boost.
+- **Trainer radar and controls:** 800–2,400 unit radar range slider, hunt toggle, aggression slider, target/feast overlays, and an emergency 40 ms panic turn for urgent head-on threats.
 - **Self-body collision modeling:** above `SELF_COLLISION_MIN_LEN = 140`, the visible own-body trail is inserted into the planner grid with neck skipping, cumulative trail arc, tail-death expiry and a 120-segment cap.
 - **Future-path self check:** candidates whose own rollout loops back within two body radii of an older self point are rejected. Active at length 140+.
 - **Per-target reaction lag:** predicted enemy headings are held for roughly 0.05 s for fast tiny boosters and 0.09 to 0.11 s for ordinary and long snakes.
@@ -33,6 +89,10 @@ Results are per-run displayed scores, not cumulative across restarts. See [docs/
 
 ### Validated
 
+- Trainer v0.2.0 closed-loop scenarios: `walls`, `wall`, `headon`, `cross`, `behind`, `hunt`, `hunt_cut`, `hunt_far`, `hunt_kill`, `hunt_flee`, `hunt_bigger`, `hunt_crowd`, `feast` and `radar` all survived 10 s with zero self-collisions; hunting scenarios scored kills.
+- Trainer smoke suite: 29/29 checks passed, including takeover/release, handler restoration, input shielding, death handling and auto-rearm.
+- Trainer behavior/UI suite: 37/37 checks passed, including chase/cut kills, corpse feasts, larger-snake and crowd rejection, radar range, and panel controls.
+- Trainer benchmark: 60 fps with five large enemy snakes and 120 body points each.
 - Lowered-threshold self-grid test: `[SELFGRID] len=8 segs=5 stride=1 body=235 skip=95`. Grid insertion and tail expiry were exercised.
 - Path-self geometry tests: straight, 90°, 180° and 270° candidate turns kept positive self-clearance.
 - Test 58: 4 min, 0 deaths, length 39, score 647, 1 kill.

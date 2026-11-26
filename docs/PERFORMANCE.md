@@ -2,6 +2,8 @@
 
 This file records measured live runs, not projections. Scores are the displayed per-run score. Auto-restart does not carry score across deaths. Server population is the dominant uncontrolled variable.
 
+The browser trainer has separate offline validation in [TRAINER_TESTING.md](TRAINER_TESTING.md); this file covers the Python driver's live runs.
+
 The current focus is **survival**. The longest zero-death run is 15 minutes.
 
 ---

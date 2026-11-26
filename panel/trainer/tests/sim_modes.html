@@ -1,0 +1,320 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>trainer closed-loop modes</title></head>
+<body style="margin:0;background:#111;color:#eee;font-family:sans-serif;">
+<canvas id="game" width="1280" height="800"></canvas>
+<script>
+(function () {
+  var params = new URLSearchParams(location.search);
+  var mode = params.get("mode") || "walls";
+  var MSL = 8;
+  var TURN = 4.125;
+  var SELF_SC = 1.2;
+  var ENEMY_SC = 1.2;
+  var SELF_R = 14.5 * SELF_SC;
+  var ENEMY_R = 14.5 * ENEMY_SC;
+
+  var self = {
+    id: 1, xx: 16384, yy: 16384, ang: 0, eang: 0, wang: 0,
+    sp: 5.5, sc: SELF_SC, scang: 1, sct: 40, rsc: 0, fam: 0, wmd: false,
+    pts: []
+  };
+  var enemies = [];
+  var selfMax = 40;
+
+  function makeEnemy(id, x, y, ang, sp, n) {
+    var e = {
+      id: id, xx: x, yy: y, ang: ang, eang: ang, wang: ang,
+      sp: sp, sc: ENEMY_SC, scang: 1, sct: n, rsc: 0, fam: 0, wmd: false,
+      maxPts: n,
+      pts: []
+    };
+    for (var i = n - 1; i >= 0; i--) {
+      e.pts.push({
+        xx: x - Math.cos(ang) * i * MSL,
+        yy: y - Math.sin(ang) * i * MSL,
+        dying: false
+      });
+    }
+    return e;
+  }
+
+  if (mode === "walls") {
+    var e1 = makeEnemy(2, 16384 + 520, 16784, Math.PI, 0, 101);
+    e1.pts = [];
+    for (var y = 15984; y <= 16784; y += MSL) e1.pts.push({xx: 16384 + 520, yy: y, dying: false});
+    e1.xx = e1.pts[e1.pts.length - 1].xx;
+    e1.yy = e1.pts[e1.pts.length - 1].yy;
+    var e2 = makeEnemy(3, 16384 - 520, 16784, 0, 0, 101);
+    e2.pts = [];
+    for (var y2 = 15984; y2 <= 16784; y2 += MSL) e2.pts.push({xx: 16384 - 520, yy: y2, dying: false});
+    e2.xx = e2.pts[e2.pts.length - 1].xx;
+    e2.yy = e2.pts[e2.pts.length - 1].yy;
+    enemies = [e1, e2];
+  } else if (mode === "wall") {
+    self.xx = 16384 + 4200;
+    self.ang = 0;
+  } else if (mode === "headon") {
+    enemies = [makeEnemy(2, 16384 + 700, 16384, Math.PI, 5.5, 100)];
+  } else if (mode === "cross") {
+    enemies = [makeEnemy(2, 16384 + 300, 16384, Math.PI / 2, 5.5, 100)];
+  } else if (mode === "behind") {
+    enemies = [makeEnemy(2, 16384 - 700, 16384, 0, 6.2, 100)];
+  } else if (mode === "hunt") {
+    selfMax = 60;
+    self.sct = 60;
+    enemies = [makeEnemy(2, 16384 + 330, 16384 + 20, Math.PI / 2, 5.5, 20)];
+  } else if (mode === "hunt_cut") {
+    selfMax = 60;
+    self.sct = 60;
+    enemies = [makeEnemy(2, 16384 + 330, 16384, Math.PI, 5.5, 20)];
+  } else if (mode === "hunt_far") {
+    selfMax = 60;
+    self.sct = 60;
+    enemies = [makeEnemy(2, 16384 + 700, 16384, Math.PI / 2, 5.5, 20)];
+  } else if (mode === "hunt_kill") {
+    selfMax = 80;
+    self.sct = 80;
+    var prey = makeEnemy(2, 16384 + 360, 16384, Math.PI, 4.6, 20);
+    prey.noHome = true;
+    enemies = [prey];
+  } else if (mode === "hunt_flee") {
+    selfMax = 80;
+    self.sct = 80;
+    var runner = makeEnemy(2, 16384 + 320, 16384, 0, 4.2, 20);
+    runner.noHome = true;
+    enemies = [runner];
+  } else if (mode === "hunt_bigger") {
+    selfMax = 40;
+    self.sct = 40;
+    enemies = [makeEnemy(2, 16384 + 360, 16384, Math.PI, 5.5, 100)];
+  } else if (mode === "hunt_crowd") {
+    selfMax = 80;
+    self.sct = 80;
+    var cprey = makeEnemy(2, 16384 + 360, 16384, Math.PI, 4.6, 20);
+    cprey.noHome = true;
+    var guard1 = makeEnemy(3, 16384 + 460, 16384 + 220, Math.PI, 5.5, 100);
+    var guard2 = makeEnemy(4, 16384 + 460, 16384 - 220, Math.PI, 5.5, 100);
+    enemies = [cprey, guard1, guard2];
+  } else if (mode === "body_far_head") {
+    // The head is outside the 2,400-unit threat radius, but the body crosses
+    // directly in front of the player. A collector that filters by head
+    // distance alone will drive straight through it.
+    var farBody = makeEnemy(2, 16384 + 300, 16384 + 2600, -Math.PI / 2, 0, 400);
+    farBody.pts = [];
+    for (var by = 16384 - 2600; by <= 16384 + 2600; by += MSL) {
+      farBody.pts.push({ xx: 16384 + 300, yy: by, dying: false });
+    }
+    farBody.xx = 16384 + 300;
+    farBody.yy = 16384 + 2600;
+    farBody.ang = -Math.PI / 2;
+    farBody.sp = 0;
+    farBody.maxPts = farBody.pts.length;
+    enemies = [farBody];
+  } else if (mode === "body_far_moving") {
+    // Same head-far geometry, but the long body sweeps sideways through the
+    // player's path. The body must remain visible as it moves.
+    var movingBody = makeEnemy(2, 16384 - 300, 16384 + 2600, 0, 4, 400);
+    movingBody.pts = [];
+    for (var mby = 16384 - 2600; mby <= 16384 + 2600; mby += MSL) {
+      movingBody.pts.push({ xx: 16384 - 300, yy: mby, dying: false });
+    }
+    movingBody.xx = 16384 - 300;
+    movingBody.yy = 16384 + 2600;
+    movingBody.ang = 0;
+    movingBody.sp = 4;
+    movingBody.noHome = true;
+    movingBody.maxPts = movingBody.pts.length;
+    enemies = [movingBody];
+  } else if (mode === "body_target_last") {
+    // Many head-far bodies consume the local body-point budget. The actual
+    // hunt target is deliberately last in the slithers array; its body must
+    // still be planned against first.
+    selfMax = 80;
+    self.sct = 80;
+    var lastTarget = makeEnemy(99, 16384 + 330, 16384 - 80, -Math.PI / 2, 0, 20);
+    lastTarget.noHome = true;
+    var decoys = [];
+    for (var d = 0; d < 8; d++) {
+      var dx = 16384 + 800 + d * 180;
+      var dy = 16384 + 2600;
+      var dec = makeEnemy(200 + d, dx, dy, -Math.PI / 2, 0, 140);
+      dec.pts = [];
+      for (var yy3 = 16384 - 1300; yy3 <= 16384 + 1300; yy3 += MSL) {
+        dec.pts.push({ xx: dx, yy: yy3, dying: false });
+      }
+      dec.xx = dx;
+      dec.yy = dy;
+      dec.ang = -Math.PI / 2;
+      dec.sp = 0;
+      dec.maxPts = dec.pts.length;
+      decoys.push(dec);
+    }
+    enemies = decoys.concat([lastTarget]);
+  } else if (mode === "body_many") {
+    selfMax = 80;
+    self.sct = 80;
+    var crowd = [];
+    for (var c = 0; c < 10; c++) {
+      var cx = 16384 + 700 + c * 130;
+      var cy = 16384 + (c % 2 ? 1500 : -1500);
+      var cc = makeEnemy(300 + c, cx, cy, c % 2 ? Math.PI / 2 : -Math.PI / 2, 0, 120);
+      cc.pts = [];
+      for (var yy4 = 16384 - 900; yy4 <= 16384 + 900; yy4 += MSL) {
+        cc.pts.push({ xx: cx, yy: yy4, dying: false });
+      }
+      cc.xx = cx;
+      cc.yy = cy;
+      cc.sp = 0;
+      cc.maxPts = cc.pts.length;
+      crowd.push(cc);
+    }
+    enemies = crowd;
+  } else if (mode === "feast") {
+    enemies = [];
+  } else if (mode === "radar") {
+    enemies = [makeEnemy(2, 16384 + 2200, 16384, Math.PI, 0, 100)];
+  }
+
+  var trail = [];
+  for (var i = selfMax - 1; i >= 0; i--) {
+    trail.push({ xx: self.xx - i * MSL, yy: self.yy });
+  }
+  self.pts = trail.slice();
+
+  window.slither = self;
+  window.slithers = [self].concat(enemies);
+  window.foods = [];
+  for (var f = 0; f < 40; f++) {
+    var a = f * Math.PI * 2 / 40;
+    window.foods.push({
+      xx: 16384 + Math.cos(a) * 320,
+      yy: 16384 + Math.sin(a) * 320,
+      sz: 1
+    });
+  }
+  if (mode === "feast") {
+    for (var cf = 0; cf < 10; cf++) {
+      var ca = cf * Math.PI * 2 / 10;
+      window.foods.push({
+        xx: 16384 + 220 + Math.cos(ca) * 55,
+        yy: 16384 + Math.sin(ca) * 55,
+        sz: 9
+      });
+    }
+  }
+  window.playing = true;
+  window.grd = 16384;
+  window.flux_grd = 4500;
+  window.real_flux_grd = 4500;
+  window.rank = 7;
+  window.fpsls = [];
+  window.fmlts = [];
+  for (var k = 0; k < 600; k++) {
+    window.fpsls[k] = k * 1.05;
+    window.fmlts[k] = 1;
+  }
+
+  var stats = window.__sim = {
+    mode: mode,
+    frames: 0,
+    collisions: 0,
+    minEnemy: Infinity,
+    minWall: Infinity,
+    maxDist: 0,
+    lastCollision: null
+  };
+
+  function moveTrail(o, maxPts) {
+    var head = o.pts[o.pts.length - 1];
+    if (Math.hypot(o.xx - head.xx, o.yy - head.yy) >= MSL) {
+      o.pts.push({ xx: o.xx, yy: o.yy, dying: false });
+      while (o.pts.length > maxPts) o.pts.shift();
+      o.sct = o.pts.length;
+    }
+  }
+
+  var last = performance.now();
+  function frame(now) {
+    requestAnimationFrame(frame);
+    var dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    if (!window.playing) return;
+
+    var xm = window.xm || 0;
+    var ym = window.ym || 0;
+    if (xm * xm + ym * ym > 256) {
+      var target = Math.atan2(ym, xm);
+      var diff = (target - self.ang + Math.PI) % (Math.PI * 2);
+      if (diff < 0) diff += Math.PI * 2;
+      diff -= Math.PI;
+      var maxTurn = TURN * self.scang * dt;
+      self.ang += Math.max(-maxTurn, Math.min(maxTurn, diff));
+    }
+    var speed = self.wmd ? 430 : self.sp * 31.25;
+    self.xx += Math.cos(self.ang) * speed * dt;
+    self.yy += Math.sin(self.ang) * speed * dt;
+    moveTrail(self, selfMax);
+
+    for (var e = 0; e < enemies.length; e++) {
+      var o = enemies[e];
+      if (!o.sp || o.dead) continue;
+      if (!o.noHome) {
+        // Home toward the player so head-on and crossing scenarios stay honest.
+        var want = Math.atan2(self.yy - o.yy, self.xx - o.xx);
+        var d = (want - o.ang + Math.PI) % (Math.PI * 2);
+        if (d < 0) d += Math.PI * 2;
+        d -= Math.PI;
+        var mt = TURN * o.scang * dt;
+        o.ang += Math.max(-mt, Math.min(mt, d));
+      }
+      o.xx += Math.cos(o.ang) * o.sp * 31.25 * dt;
+      o.yy += Math.sin(o.ang) * o.sp * 31.25 * dt;
+      moveTrail(o, o.maxPts || 100);
+
+      // A smaller snake whose head runs into our body dies. This lets the
+      // harness verify that hunting actually traps prey, not just chases it.
+      for (var bp = 0; bp + 8 < self.pts.length; bp++) {
+        var bodyPt = self.pts[bp];
+        if (Math.hypot(o.xx - bodyPt.xx, o.yy - bodyPt.yy) < SELF_R + ENEMY_R) {
+          o.dead = true;
+          o.sp = 0;
+          stats.kills = (stats.kills || 0) + 1;
+          break;
+        }
+      }
+    }
+
+    var minEnemy = Infinity;
+    for (var e2 = 0; e2 < enemies.length; e2++) {
+      var oo = enemies[e2];
+      if (oo.dead) continue;
+      for (var p = 0; p < oo.pts.length; p++) {
+        var pt = oo.pts[p];
+        var dd = Math.hypot(self.xx - pt.xx, self.yy - pt.yy);
+        if (dd < minEnemy) minEnemy = dd;
+      }
+    }
+    if (minEnemy < stats.minEnemy) stats.minEnemy = minEnemy;
+    var wall = 4500 - Math.hypot(self.xx - 16384, self.yy - 16384);
+    if (wall < stats.minWall) stats.minWall = wall;
+    var dist = Math.hypot(self.xx - 16384, self.yy - 16384);
+    if (dist > stats.maxDist) stats.maxDist = dist;
+
+    if (minEnemy < SELF_R + ENEMY_R) {
+      stats.collisions++;
+      stats.lastCollision = { x: self.xx, y: self.yy, d: minEnemy };
+      window.playing = false;
+    }
+    if (wall < SELF_R) {
+      stats.collisions++;
+      stats.lastCollision = { x: self.xx, y: self.yy, wall: wall };
+      window.playing = false;
+    }
+    stats.frames++;
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

@@ -69,8 +69,9 @@ If Chromium is already installed, pass `--browser /path/to/chrome` or set `PLAYW
 | `probe_tops.py` | Samples servers and reports nearby-snake density. |
 | `tools/sync_embedded.py` | Syncs (or checks) `bot_v2.js` to the embedded `BOT_JS`. |
 | `recon/` | Standalone read-only probes. Do not write game state from them. |
-| `panel/trainer/` | Browser-injectable panel that takes over a live slither.io tab. It never starts a run. |
-| `docs/` | Architecture, measured results and open problems. |
+| `panel/trainer/` | Browser-injectable panel that takes over a live slither.io tab. Threat-aware radar, smaller-snake hunting and corpse feasts; it never starts a run. |
+| `panel/trainer/tests/` | Offline Playwright collision, takeover, UI and FPS tests. The harness may launch a browser; the production trainer does not. |
+| `docs/` | Architecture, measured results, trainer testing and open problems. |
 | `.github/` | Issue and PR templates and the syntax/sync CI workflow. |
 
 ---
@@ -129,6 +130,21 @@ python run_v2.py --headless --seconds 600 --verbose \
 ```
 
 For survival changes, use a longer run when possible. For behaviour changes, run the same server, duration and flags with the feature on and off, otherwise the result isn't a useful comparison.
+
+Trainer-only changes use the offline Playwright suite instead of the Python
+driver. It runs against local mock pages and the installed default Chrome/Edge:
+
+```bash
+python -m pip install -r panel/trainer/tests/requirements.txt
+node --check panel/trainer/trainer.js
+python panel/trainer/tests/run_all.py
+```
+
+Add a focused scenario to `panel/trainer/tests/sim_modes.html` for new movement
+or collision behaviour, and update
+[`docs/TRAINER_TESTING.md`](docs/TRAINER_TESTING.md) when the threat/body model
+changes. The trainer test harness may launch a browser; the production trainer
+must never do so.
 
 Record at least:
 

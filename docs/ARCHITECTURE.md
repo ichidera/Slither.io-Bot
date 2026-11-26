@@ -286,6 +286,34 @@ development iterations do not need a sync.
 
 ---
 
+## Browser trainer panel
+
+`panel/trainer/trainer.js` is a separate, self-contained planner for a run the
+user already started. It does not use the Python driver or `bot_v2.js`. It reads
+`window.slither`, `window.slithers`, `window.foods` and the game's mouse/boost
+globals, then writes `window.xm`, `window.ym` and the boost flag while takeover
+is active.
+
+The trainer's threat collector keeps separate data for:
+
+- live heads and static head points for collision/hunting;
+- per-snake nearest body points collected independently of the head's distance;
+- the prioritized body obstacle list used by the planner and radar.
+
+Each body is reduced to its nearest points even when the head is outside the
+2,400-unit threat range. `buildBodyPoints` puts the current hunt target's body
+first, then orders other bodies by nearest sampled distance, before applying the
+shared point cap. This prevents a crowded scene from silently dropping the body
+the trainer is about to cross. See
+[`docs/TRAINER_TESTING.md`](TRAINER_TESTING.md) for the v0.2.1 regression and the
+Playwright test harness.
+
+The panel saves and replaces the game's mouse/touch handlers during takeover,
+shields panel clicks from the game, and restores the handlers on release or
+death. It never calls the Play button, reconnect or socket APIs.
+
+---
+
 ## Known design constraints
 
 - The planner is reactive at roughly 30 Hz; it does not have a global map of

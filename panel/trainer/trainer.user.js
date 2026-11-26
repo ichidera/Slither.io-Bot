@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         Slither.io Trainer Panel
 // @namespace    https://github.com/ichidera/Slither.io-Bot
-// @version      0.1.0
-// @description  Injects a control panel that takes over your current slither.io run. It never starts a new session.
+// @version      0.2.1
+// @description  Injects a control panel that takes over your current slither.io run with radar, threat-aware steering, hunting and corpse feasts. It never starts a new session.
 // @author       ichidera
 // @license      MIT
 // @match        *://slither.io/*
 // @run-at       document-idle
 // @grant        none
-// @require      https://cdn.jsdelivr.net/gh/ichidera/Slither.io-Bot@main/panel/trainer/trainer.js
+// @require      https://cdn.jsdelivr.net/gh/ichidera/Slither.io-Bot@main/panel/trainer/trainer.js?v=0.2.1
 // @downloadURL  https://raw.githubusercontent.com/ichidera/Slither.io-Bot/main/panel/trainer/trainer.user.js
 // @updateURL    https://raw.githubusercontent.com/ichidera/Slither.io-Bot/main/panel/trainer/trainer.user.js
 // ==/UserScript==

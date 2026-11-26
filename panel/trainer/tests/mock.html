@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>trainer mock</title></head>
+<body style="margin:0;background:#111;color:#eee;font-family:sans-serif;">
+<canvas id="game" width="1280" height="800"></canvas>
+<script>
+(function () {
+  function makePts(tailX, headX, y, n) {
+    var a = [];
+    for (var i = 0; i < n; i++) {
+      a.push({ xx: tailX + (headX - tailX) * i / (n - 1), yy: y, dying: false });
+    }
+    return a;
+  }
+
+  var self = {
+    id: 1, xx: 16384, yy: 16384, ang: 0, eang: 0, wang: 0,
+    sp: 5.5, sc: 1.2, scang: 1, sct: 20, rsc: 0, fam: 0, wmd: false,
+    pts: makePts(16184, 16384, 16384, 20)
+  };
+  var enemy = {
+    id: 2, xx: 16600, yy: 16384, ang: Math.PI,
+    sp: 5.5, sc: 1.1, scang: 1, sct: 12, wmd: false,
+    pts: makePts(16800, 16600, 16384, 16)
+  };
+
+  window.slither = self;
+  window.slithers = [self];
+  window.__enemy = enemy;
+  window.foods = [];
+  for (var i = 0; i < 12; i++) {
+    window.foods.push({
+      xx: 16384 + Math.cos(i) * 300,
+      yy: 16384 + Math.sin(i) * 300,
+      sz: 1
+    });
+  }
+  window.playing = true;
+  window.grd = 16384;
+  window.flux_grd = 4500;
+  window.real_flux_grd = 4500;
+  window.rank = 7;
+  window.slither_count = 20;
+  window.fpsls = [];
+  window.fmlts = [];
+  for (var k = 0; k < 600; k++) {
+    window.fpsls[k] = k * 1.05;
+    window.fmlts[k] = 1;
+  }
+
+  window.__origMouseMove = function (e) {
+    window.__gameMouseMoves = (window.__gameMouseMoves || 0) + 1;
+    window.xm = e.clientX - window.innerWidth / 2;
+    window.ym = e.clientY - window.innerHeight / 2;
+  };
+  window.onmousemove = window.__origMouseMove;
+  window.onmousedown = function (e) {
+    window.__gameMouseDowns = (window.__gameMouseDowns || 0) + 1;
+    window.slither.wmd = true;
+  };
+  window.addEventListener('mouseup', function () {
+    window.__gameMouseUps = (window.__gameMouseUps || 0) + 1;
+    if (window.slither) window.slither.wmd = false;
+  });
+  window.play_btn = {
+    elem: {
+      onclick: function () {
+        window.__playClicks = (window.__playClicks || 0) + 1;
+      }
+    }
+  };
+})();
+</script>
+</body>
+</html>

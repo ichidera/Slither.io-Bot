@@ -91,7 +91,13 @@ python tools/sync_embedded.py --check
 `panel/trainer/` injects a control panel into a slither.io tab you already have
 open. It takes over the snake in that live session instead of launching a new
 browser or creating a new run. Start the run yourself, inject the panel, then
-click **Take over**. See [panel/trainer/README.md](panel/trainer/README.md).
+click **Take over**. v0.2.1 fixes body ramming: enemy bodies are collected even
+when their heads are outside the 2,400-unit threat range, and the hunt target's
+body is prioritized in a crowd. v0.2.0 added the 2,400-unit threat radar,
+time-to-collision and faster-chaser evasion, smaller-snake hunting with
+chase/cut/coil maneuvers, corpse feasts, and tunable safety, aggression and radar
+controls. See [panel/trainer/README.md](panel/trainer/README.md) and
+[docs/TRAINER_TESTING.md](docs/TRAINER_TESTING.md).
 
 ### Server probing
 
@@ -161,9 +167,11 @@ probe_tops.py           Server sampler (nearby-snake density)
 tools/sync_embedded.py  Syncs bot_v2.js into the embedded BOT_JS
 recon/                  Read-only live-state, food and physics probes
 panel/trainer/          Browser-injectable panel for taking over a live tab
+panel/trainer/tests/    Offline Playwright regression and FPS tests
 docs/
   ARCHITECTURE.md       Planner internals and game-state surface
   PERFORMANCE.md        Measured runs, death profile, open problems
+  TRAINER_TESTING.md    Trainer body fix, Playwright tests and live checklist
 assets/                 Reference screenshots
 ```
 
